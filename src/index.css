@@ -1,0 +1,51 @@
+:root {
+  /* Variables globales */
+  --primary-color: #34579c;
+  --secondary-color: #23415c;
+  --background-color: #f0f0f0;
+  --text-color: #333;
+  --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+  /* Variables de gradientes */
+  --primary-gradient: linear-gradient(45deg, #34579c, #4a6bb0);
+  --secondary-gradient: linear-gradient(45deg, #23415c, #2f5270);
+  --background-gradient: linear-gradient(135deg, #f0f0f0, #e8e8e8);
+  --text-gradient: linear-gradient(45deg, #333, #555);
+
+  --primary-gradient: linear-gradient(135deg, #f0f0f0, #bfdaff);
+
+  font-size: 16px; /* Tamaño base */
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--background-color);
+  color: var(--text-color);
+  line-height: 1.6;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  color: white;
+}
+
+button:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.149);
+  transform: translateX(-1px);
+}
+
+input {
+  outline: none;
+} 
