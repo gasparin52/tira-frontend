@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from 'react';
 import styled from 'styled-components';
 import Optioncard from '../components/cards/Optioncard';
@@ -86,8 +85,8 @@ function Home() {
                 </TitleDiv>
             </TitleContainer>
             <CardContainer>
-                <Optioncard title="Dashboard" imageSrc="/icons/topology-star-b.svg" description="Learn how to use Tira effectively." to="/dashboard" />
-                <Optioncard title="Tasks" imageSrc="/icons/list-detailsb.svg" description="Manage and track your daily work with ease." to="/kanban" />
+                <Optioncard title="Users" imageSrc="/icons/user.svg" description="Manage and organize your user base effectively." to="/users" />
+                <Optioncard title="Tasks" imageSrc="/icons/list-detailsb.svg" description="Manage and track your daily work with ease." to="/tasks" />
                 <Optioncard title="Teams" imageSrc="/icons/users-groupb.svg" description="Learn how to use Tira effectively." to="/teams" />
             </CardContainer>
             <Section>

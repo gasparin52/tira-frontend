@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from 'react';
 import styled from 'styled-components';
 import Header from './Header';
@@ -9,7 +8,7 @@ const BaseLayout = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100%;
+  min-height: calc(90vh - 10vh);
   background-color: #f0f0f0;
   color: black;
 `;

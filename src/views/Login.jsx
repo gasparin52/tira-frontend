@@ -84,6 +84,12 @@ function Login() {
       const user = users[0];
       localStorage.setItem('user_id', user.user_id);
       localStorage.setItem('username', user.username);
+
+      // if (user.password !== passTrim) {
+      // console.log(user, passTrim)
+      // throw new Error('Invalid password');
+      // }
+
       navigate('/teams');
     } catch (e) {
       setErr(e.message || 'Login failed');

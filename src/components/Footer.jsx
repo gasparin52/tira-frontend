@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from 'react';
 import styled from 'styled-components';
 
@@ -22,7 +21,7 @@ const Footer = styled.footer`
 `;
 
 function FooterComponent() {
-  return <Footer>tira uwu - 2024</Footer>;
+  return <Footer> ® Tira - 2025 </Footer>;
 }
 
 export default FooterComponent;

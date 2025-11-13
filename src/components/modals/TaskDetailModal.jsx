@@ -8,20 +8,24 @@ const DetailGrid = styled.div`
   gap: 16px;
   margin-bottom: 24px;
 `;
+
 const DetailRow = styled.div`
   display: grid;
   grid-template-columns: 120px 1fr;
   gap: 12px;
   align-items: start;
 `;
+
 const Label = styled.div`
   font-weight: 600;
   color: #555;
 `;
+
 const Value = styled.div`
   color: #333;
   word-break: break-word;
 `;
+
 const StatusBadge = styled.span`
   display: inline-block;
   padding: 4px 12px;
@@ -82,40 +86,53 @@ const CommentHeader = styled.div`
   align-items: center;
   margin-bottom: 6px;
 `;
+
 const CommentAuthor = styled.div`
   font-weight: 600;
   font-size: 0.9em;
   color: #555;
 `;
+
 const CommentDate = styled.div`
   font-size: 0.8em;
   color: #888;
 `;
+
 const CommentContent = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
   font-size: 0.95em;
   color: #333;
   line-height: 1.4;
 `;
+
 const DeleteCommentBtn = styled.button`
-  background: #e93737;
+  background: none;
   border: none;
-  font-size: 1.5rem;
   cursor: pointer;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: .2rem .5rem;
+  font-size: 1.2em;
   border-radius: 4px;
-  color: #f5f5f5;
-  &:hover { background-color: #cb3131; }
+  background-color: #b63535e8;
+
+  &:hover {
+    background-color: #b74e4ee8;
+  }
+
+  img {
+    width: 16px;
+    height: 16px;
+    filter: brightness(0) invert(1);
+  }
 `;
+
 const CommentForm = styled.form`
   display: flex;
   flex-direction: column;
   gap: 8px;
 `;
+
 const CommentTextarea = styled.textarea`
   width: 100%;
   padding: 10px;
@@ -127,11 +144,13 @@ const CommentTextarea = styled.textarea`
   font-family: inherit;
   &:focus { outline: none; border-color: #4a90e2; }
 `;
+
 const ButtonRow = styled.div`
   display: flex;
   gap: 8px;
   justify-content: flex-end;
 `;
+
 const SubmitButton = styled.button`
   padding: 8px 16px;
   border: none;
@@ -143,12 +162,14 @@ const SubmitButton = styled.button`
   &:hover { background: #3b78c1; }
   &:disabled { background: #ccc; cursor: not-allowed; }
 `;
+
 const EmptyMessage = styled.div`
   text-align: center;
   color: #888;
   padding: 20px;
   font-style: italic;
 `;
+
 const ErrorMessage = styled.div`
   color: #dc3545;
   font-size: 0.9em;
@@ -341,17 +362,20 @@ const TaskDetailModal = ({ isOpen, onClose, task }) => {
                 <CommentAuthor>
                   {commentAuthors[comment.author_id] || comment.author_id || 'Anonymous'}
                 </CommentAuthor>
-                <CommentDate>{formatDate(comment.created_at)}</CommentDate>
+                <CommentDate>
+                  {formatDate(comment.created_at)}
+                </CommentDate>
               </CommentHeader>
-              <CommentContent>{comment.content}</CommentContent>
-              {comment.author_id === userId && (
+              <CommentContent>{comment.content}
+                {comment.author_id === userId && (
                 <DeleteCommentBtn
                   onClick={() => handleDeleteComment(comment.comment_id)}
                   title="Delete comment"
-                >
-                  ×
-                </DeleteCommentBtn>
-              )}
+                  >
+                    <img src="/icons/delete.svg" alt="Delete" />
+                  </DeleteCommentBtn>
+                )}
+              </CommentContent>
             </CommentCard>
           ))}
         </CommentsList>

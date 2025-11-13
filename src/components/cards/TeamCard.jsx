@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
@@ -52,6 +51,11 @@ const ActionBtn = styled.button`
   border-radius: 4px;
   cursor: pointer;
   font-size: .75em;
+  
+  img {
+    width: 16px;
+    height: 16px;
+  }
 
   &:hover {
     opacity: .8;

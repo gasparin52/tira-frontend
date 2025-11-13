@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from 'react';
 import styled, { css } from 'styled-components';
 
@@ -10,7 +9,7 @@ const StyledButton = styled.button`
   font-weight: bold;
   transition: 0.2s ease;
 
-  ${({ styleType }) => styleType === 'primary' && css`
+  ${({ styletype }) => styletype === 'primary' && css`
     background: linear-gradient(45deg, #407aed, #3f73a1);
     color: white;
 
@@ -22,7 +21,7 @@ const StyledButton = styled.button`
     }
   `}
 
-  ${({ styleType }) => styleType === 'secondary' && css`
+  ${({ styletype }) => styletype === 'secondary' && css`
     background: linear-gradient(45deg, #40edb0, #3fa15b);
     color: white;
 
@@ -34,7 +33,7 @@ const StyledButton = styled.button`
     }
   `}
 
-  ${({ styleType }) => styleType === 'danger' && css`
+  ${({ styletype }) => styletype === 'danger' && css`
     background: linear-gradient(45deg, #33a0d3, #2b8bc7);
     color: white;
 
@@ -47,9 +46,9 @@ const StyledButton = styled.button`
   `}
 `;
 
-function BaseButton({ text, onClick, styleType = 'primary' }) {
+function BaseButton({ text, onClick, styletype = 'primary' }) {
   return (
-    <StyledButton styleType={styleType} onClick={onClick}>
+    <StyledButton styletype={styletype} onClick={onClick}>
       {text}
     </StyledButton>
   );

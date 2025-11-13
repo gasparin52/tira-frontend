@@ -6,14 +6,23 @@ export async function callAPI(url, method = 'GET', data = null) {
     method: method,
     headers: { 'Content-Type': 'application/json' }
   };
-  if (data) config.body = JSON.stringify(data);
+  if (data) {
+    config.body = JSON.stringify(data);
+  }
 
   const response = await fetch(fullUrl, config);
+
   if (!response.ok) {
     const errorText = await response.text().catch(() => response.statusText);
     throw new Error(errorText || `HTTP Error: ${response.status}`);
   }
-  return response.json();
+
+  const contentType = response.headers.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    return await response.json();
+  }
+  
+  return null;
 }
 
 export function normalizeUsers(data) {

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { NavLink } from 'react-router-dom';
@@ -11,6 +10,7 @@ const SideBarContainer = styled.aside`
   color: black;
   border-right: 1px solid #bcbcbc;
 `;
+
 const TopBar = styled.div`
   display: flex;
   align-items: center;
@@ -18,6 +18,7 @@ const TopBar = styled.div`
   padding: 0.5rem;
   border-bottom: 1px solid #bcbcbc;
 `;
+
 const ToggleButton = styled.button`
   width: 36px;
   height: 36px;
@@ -33,6 +34,7 @@ const ToggleButton = styled.button`
   color: #333;
   &:hover { background: #f2f2f2; }
 `;
+
 const List = styled.ul`
   display: flex;
   flex-direction: column;
@@ -46,6 +48,7 @@ const IconImg = styled.img`
   height: 1.5rem;
   margin-right: 1.2rem;
 `;
+
 const ItemLink = styled(NavLink)`
   display: flex;
   align-items: center;

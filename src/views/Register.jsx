@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState } from 'react';
 import Wrapper from '../components/wrapper';
 import styled from 'styled-components';

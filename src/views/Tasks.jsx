@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useEffect, useState, useCallback } from 'react';
 import styled from 'styled-components';
 import Wrapper from '../components/wrapper';
@@ -117,6 +116,47 @@ const PrimaryButton = styled(Button)`
   }
 `;
 
+const PaginationContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+`;
+
+const PageButton = styled.button`
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  background: ${props => props.active ? '#4a90e2' : 'white'};
+  color: ${props => props.active ? 'white' : '#333'};
+  min-width: 40px;
+  
+  &:hover:not(:disabled) {
+    background: ${props => props.active ? '#3b78c1' : '#f0f0f0'};
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+
+const Select = styled.select`
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  
+  &:focus {
+    outline: none;
+    border-color: #4a90e2;
+  }
+`;
+
 export default function Tasks() {
   const [search] = useSearchParams();
   const qpTeam = search.get('team_id') || '';
@@ -133,25 +173,48 @@ export default function Tasks() {
   const [formData, setFormData] = useState({ title:'', description:'', status:'pending', priority:'medium', deadline:'', assigned_to:'' });
   const [createErr, setCreateErr] = useState('');
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalTasks, setTotalTasks] = useState(0);
+  const tasksPerPage = 5;
+  const totalPages = Math.ceil(totalTasks / tasksPerPage);
+
   useEffect(() => { if (qpTeam) { setTeamId(qpTeam); localStorage.setItem('team_id', qpTeam); } }, [qpTeam]);
 
-  const loadTasks = useCallback(async () => {
+  const loadTasks = useCallback(async (page = 1) => {
     if (!teamId) return;
     setLoading(true);
     setErr('');
     try {
-      const data = await callAPI(`/tasks?team_id=${encodeURIComponent(teamId)}`);
-      setTasks(Array.isArray(data) ? data : []);
+      const offset = (page - 1) * tasksPerPage;
+      const data = await callAPI(
+        `/tasks?team_id=${encodeURIComponent(teamId)}&limit=${tasksPerPage}&offset=${offset}`
+      );
+      
+      if (data && data.tasks && typeof data.total === 'number') {
+        setTasks(data.tasks);
+        setTotalTasks(data.total);
+      } else if (Array.isArray(data)) {
+        setTasks(data);
+        if (data.length === tasksPerPage) {
+          setTotalTasks(offset + data.length + 1);
+        } else {
+          setTotalTasks(offset + data.length);
+        }
+      } else {
+        setTasks([]);
+        setTotalTasks(0);
+      }
+      setCurrentPage(page);
     } catch (e) {
       setErr(e.message);
     } finally {
       setLoading(false);
     }
-  }, [teamId]);
+  }, [teamId, tasksPerPage]);
 
   useEffect(() => {
-    loadTasks();
-  }, [loadTasks]);
+    loadTasks(1);
+  }, [teamId]);
 
   const handleTaskClick = (task) => { setSelectedTask(task); setIsDetailOpen(true); };
   const handleCloseDetail = () => { setIsDetailOpen(false); setSelectedTask(null); };
@@ -177,7 +240,7 @@ export default function Tasks() {
       });
       setIsNewOpen(false);
       setFormData({ title:'', description:'', status:'pending', priority:'medium', deadline:'', assigned_to:'' });
-      loadTasks();
+      loadTasks(1);
     } catch (e) {
       setCreateErr(e.message);
     }
@@ -192,10 +255,52 @@ export default function Tasks() {
     if (!confirm('Delete this task?')) return;
     try {
       await callAPI(`/tasks/${taskId}`, 'DELETE');
-      loadTasks();
+      
+      if (tasks.length === 1 && currentPage > 1) {
+        loadTasks(currentPage - 1);
+      } else {
+        loadTasks(currentPage);
+      }
     } catch (e) {
       alert(`Error: ${e.message}`);
     }
+  };
+
+  const goToPage = (page) => {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+      loadTasks(page);
+    }
+  };
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisible = 10;
+    
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push('...');
+        pages.push(currentPage - 1);
+        pages.push(currentPage);
+        pages.push(currentPage + 1);
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
   };
 
   const userId = localStorage.getItem('user_id') || '';
@@ -213,7 +318,7 @@ export default function Tasks() {
         {teamId && !loading && err && <div style={{ color: 'crimson' }}>Error: {err}</div>}
         {teamId && !loading && !err && tasks.length === 0 && <div>No tasks for this team.</div>}
 
-        {tasks.map(task => (
+        {tasks.length > 0 && tasks.map(task => (
           <TaskCard 
             key={task.task_id} 
             task={task} 
@@ -222,6 +327,40 @@ export default function Tasks() {
             onDelete={handleDeleteTask}
           />
         ))}
+
+        {/* Paginación */}
+        {teamId && (
+          <PaginationContainer>
+            <PageButton 
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              ‹ Prev
+            </PageButton>
+            
+            {getPageNumbers().map((page, index) => (
+              page === '...' ? (
+                <span key={`ellipsis-${index}`} style={{ padding: '0 0.5rem' }}>...</span>
+              ) : (
+                <PageButton
+                  key={page}
+                  active={currentPage === page}
+                  onClick={() => goToPage(page)}
+                >
+                  {page}
+                </PageButton>
+              )
+            ))}
+            
+            <PageButton 
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Next ›
+            </PageButton>
+          
+          </PaginationContainer>
+        )}
 
         <ModalContainer isOpen={isNewOpen} onClose={() => setIsNewOpen(false)} title="New task">
           <Form onSubmit={handleCreateTask}>
@@ -235,20 +374,20 @@ export default function Tasks() {
             </Label>
             <Label>
               Status
-              <select style={{ padding: '8px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px' }} value={formData.status} onChange={e => setFormData(f => ({ ...f, status: e.target.value }))}>
+              <Select value={formData.status} onChange={e => setFormData(f => ({ ...f, status: e.target.value }))}>
                 <option value="pending">Pending</option>
                 <option value="ongoing">Ongoing</option>
                 <option value="done">Done</option>
                 <option value="canceled">Canceled</option>
-              </select>
+              </Select>
             </Label>
             <Label>
               Priority
-              <select style={{ padding: '8px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px' }} value={formData.priority} onChange={e => setFormData(f => ({ ...f, priority: e.target.value }))}>
+              <Select value={formData.priority} onChange={e => setFormData(f => ({ ...f, priority: e.target.value }))}>
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
-              </select>
+              </Select>
             </Label>
             <Label>
               Deadline
