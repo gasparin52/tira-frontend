@@ -110,8 +110,8 @@ export default function SideBar() {
         </li>
         <li>
           <ItemLink to="/kanban" end title="Kanban">
-            <IconImg src="/icons/table.svg" alt="Kanban" />
-            <Label>Kanban</Label>
+            <IconImg src="/icons/table.svg" alt="Comments" />
+            <Label>Comments</Label>
           </ItemLink>
         </li>
       </List>

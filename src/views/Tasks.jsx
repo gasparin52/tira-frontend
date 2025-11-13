@@ -14,6 +14,7 @@ const Page = styled.div`
   flex-direction: column;
   justify-content: flex-start;
   height: 100%;
+  margin-bottom: 3rem;
 `;
 
 const HeaderRow = styled.div`
@@ -26,6 +27,28 @@ const HeaderRow = styled.div`
 
 const Title = styled.h1`
   margin: 0;
+`;
+
+const FilterRow = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+`;
+
+const ClearButton = styled.button`
+  padding: 8px 16px;
+  border: 1px solid #6c757d;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  background-color: #6c757d;
+  color: white;
+
+  &:hover {
+    background-color: #5a6268;
+  }
 `;
 
 const AddButton = styled.button`
@@ -144,7 +167,6 @@ const PageButton = styled.button`
   }
 `;
 
-
 const Select = styled.select`
   padding: 8px 12px;
   border: 1px solid #ddd;
@@ -173,6 +195,9 @@ export default function Tasks() {
   const [formData, setFormData] = useState({ title:'', description:'', status:'pending', priority:'medium', deadline:'', assigned_to:'' });
   const [createErr, setCreateErr] = useState('');
 
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterPriority, setFilterPriority] = useState('');
+
   const [currentPage, setCurrentPage] = useState(1);
   const [totalTasks, setTotalTasks] = useState(0);
   const tasksPerPage = 5;
@@ -186,9 +211,16 @@ export default function Tasks() {
     setErr('');
     try {
       const offset = (page - 1) * tasksPerPage;
-      const data = await callAPI(
-        `/tasks?team_id=${encodeURIComponent(teamId)}&limit=${tasksPerPage}&offset=${offset}`
-      );
+      let url = `/tasks?team_id=${encodeURIComponent(teamId)}&limit=${tasksPerPage}&offset=${offset}`;
+      
+      if (filterStatus) {
+        url += `&status=${encodeURIComponent(filterStatus)}`;
+      }
+      if (filterPriority) {
+        url += `&priority=${encodeURIComponent(filterPriority)}`;
+      }
+      
+      const data = await callAPI(url);
       
       if (data && data.tasks && typeof data.total === 'number') {
         setTasks(data.tasks);
@@ -210,11 +242,16 @@ export default function Tasks() {
     } finally {
       setLoading(false);
     }
-  }, [teamId, tasksPerPage]);
+  }, [teamId, tasksPerPage, filterStatus, filterPriority]);
 
   useEffect(() => {
     loadTasks(1);
-  }, [teamId]);
+  }, [teamId, filterStatus, filterPriority]);
+
+  const handleClearFilters = () => {
+    setFilterStatus('');
+    setFilterPriority('');
+  };
 
   const handleTaskClick = (task) => { setSelectedTask(task); setIsDetailOpen(true); };
   const handleCloseDetail = () => { setIsDetailOpen(false); setSelectedTask(null); };
@@ -312,6 +349,27 @@ export default function Tasks() {
           <Title>Tasks</Title>
           <AddButton onClick={() => setIsNewOpen(true)} aria-label="Create task">+</AddButton>
         </HeaderRow>
+
+        {teamId && (
+          <FilterRow>
+            <Select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+              <option value="">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="ongoing">Ongoing</option>
+              <option value="done">Done</option>
+              <option value="canceled">Canceled</option>
+            </Select>
+            <Select value={filterPriority} onChange={e => setFilterPriority(e.target.value)}>
+              <option value="">All Priorities</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </Select>
+            {(filterStatus || filterPriority) && (
+              <ClearButton onClick={handleClearFilters}>Clear Filters</ClearButton>
+            )}
+          </FilterRow>
+        )}
 
         {!teamId && <div>Select a team first.</div>}
         {teamId && loading && <div>Loading tasks…</div>}

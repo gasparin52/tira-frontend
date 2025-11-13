@@ -105,7 +105,7 @@ const TaskStatus = styled.span`
     color: #856404;
   }
 
-  &.in-progress {
+  &.in_progress, &.in-progress, &.ongoing {
     background-color: #cce5ff;
     color: #004085;
   }
@@ -113,6 +113,11 @@ const TaskStatus = styled.span`
   &.done, &.completed {
     background-color: #d4edda;
     color: #155724;
+  }
+
+  &.canceled {
+    background-color: #f8d7da;
+    color: #721c24;
   }
 `;
 
@@ -138,29 +143,17 @@ const ImgIcon = styled.img`
   }
 `;
 
-const statusClass = (status) => {
-    if (!status) return 'pending';
-    if (status === 'in_progress') return 'in-progress';
-    if (status === 'done') return 'done';
-    return status;
+const STATUS_LABELS = {
+    pending: 'Pending',
+    in_progress: 'In Progress',
+    'in-progress': 'In Progress',
+    ongoing: 'Ongoing',
+    done: 'Done',
+    completed: 'Completed',
+    canceled: 'Canceled'
 };
 
-const statusLabel = (status) => {
-    switch (status) {
-        case 'pending':
-            return 'Pending';
-        case 'in_progress':
-            return 'In progress';
-        case 'in-progress':
-            return 'In progress';
-        case 'done':
-            return 'Done';
-        case 'completed':
-            return 'Completed';
-        default:
-            return 'Pending';
-    }
-};
+const statusLabel = (status) => STATUS_LABELS[status] || 'Pending';
 
 const fmtDate = (value) => {
     if (!value) return '';
@@ -172,8 +165,8 @@ const fmtDate = (value) => {
 };
 
 const TaskCard = ({ task, onEdit, onDelete, onClick }) => {
-    const sClass = statusClass(task?.status);
-    const sLabel = statusLabel(task?.status);
+    const status = task?.status || 'pending';
+    const sLabel = statusLabel(status);
     const priority = task?.priority || 'medium';
 
     const handleCardClick = () => {
@@ -207,7 +200,7 @@ const TaskCard = ({ task, onEdit, onDelete, onClick }) => {
                 <TaskDescription>{task?.description || 'No description'}</TaskDescription>
                 <TaskMeta>
                     <LeftMeta>
-                        <TaskStatus className={sClass}>{sLabel}</TaskStatus>
+                        <TaskStatus className={status}>{sLabel}</TaskStatus>
                         <PriorityBadge level={priority}>Priority: {priority}</PriorityBadge>
                     </LeftMeta>
                     <RightMeta>
