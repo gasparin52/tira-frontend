@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import ModalContainer from './ModalContainer';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { GET, POST, DELETE } from '../../utils/api';
 
 const List = styled.ul`
   padding-left: 18px;
@@ -60,10 +59,7 @@ const TeamMembersModal = ({ isOpen, onClose, team }) => {
       setErr('');
 
       try {
-        const r = await fetch(`${API_BASE}/teams/${team.team_id}/members`);
-        if (!r.ok) throw new Error('No se pudieron cargar los miembros');
-        
-        const data = await r.json();
+        const data = await GET(`/teams/${team.team_id}/members`);
         if (!cancel) setMembers(Array.isArray(data) ? data : []);
       } catch (e) {
         if (!cancel) setErr(e.message || 'Error');
@@ -83,17 +79,11 @@ const TeamMembersModal = ({ isOpen, onClose, team }) => {
     if (!email) return;
 
     try {
-      const r = await fetch(`${API_BASE}/teams/${team.team_id}/members`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
-
-      if (!r.ok) throw new Error(await r.text().catch(() => 'Error al agregar'));
+      await POST(`/teams/${team.team_id}/members`, { email });
 
       setEmail('');
       
-      const list = await (await fetch(`${API_BASE}/teams/${team.team_id}/members`)).json();
+      const list = await GET(`/teams/${team.team_id}/members`);
       setMembers(Array.isArray(list) ? list : []);
     } catch (e) {
       alert(e.message || 'Error');
@@ -104,11 +94,7 @@ const TeamMembersModal = ({ isOpen, onClose, team }) => {
     if (!confirm('Remove member from team?')) return;
 
     try {
-      const r = await fetch(`${API_BASE}/teams/${team.team_id}/members/${userId}`, {
-        method: 'DELETE'
-      });
-
-      if (!r.ok) throw new Error('No se pudo eliminar el miembro');
+      await DELETE(`/teams/${team.team_id}/members/${userId}`);
       
       setMembers(m => m.filter(x => x.user_id !== userId));
     } catch (e) {

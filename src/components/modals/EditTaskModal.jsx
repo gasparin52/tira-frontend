@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import ModalContainer from './ModalContainer';
+import { PATCH } from '../../utils/api';
 
 const Form = styled.form`
   display: grid;
@@ -101,8 +102,6 @@ const ErrorMessage = styled.div`
   border-radius: 4px;
 `;
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
 const EditTaskModal = ({ isOpen, onClose, task, onSuccess }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -168,16 +167,7 @@ const EditTaskModal = ({ isOpen, onClose, task, onSuccess }) => {
         return;
       }
 
-      const res = await fetch(`${API_BASE}/tasks/${task.task_id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) {
-        const errText = await res.text().catch(() => 'Failed to update task');
-        throw new Error(errText);
-      }
+      await PATCH(`/tasks/${task.task_id}`, payload);
 
       if (onSuccess) onSuccess();
       onClose();

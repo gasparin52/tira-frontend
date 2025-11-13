@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import ModalContainer from './ModalContainer';
+import { PATCH } from '../../utils/api';
 
 const Form = styled.form`
   display: grid;
@@ -77,8 +78,6 @@ const ErrorMessage = styled.div`
   font-size: .9em;
 `;
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
 const EditUserModal = ({ isOpen, onClose, user, onSuccess }) => {
   const [form, setForm] = useState({
     username: '',
@@ -103,13 +102,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSuccess }) => {
     setErr('');
 
     try {
-      const res = await fetch(`${API_BASE}/users/${user.user_id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
-      });
-
-      if (!res.ok) throw new Error(await res.text().catch(() => 'Failed to update user'));
+      await PATCH(`/users/${user.user_id}`, form);
 
       if (onSuccess) onSuccess();
       onClose();

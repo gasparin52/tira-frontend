@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
+import { GET } from '../../utils/api';
 
 const StyledTeamCard = styled.div`
   border: 1px solid #ccc;
@@ -93,8 +94,6 @@ const MembersList = styled.ul`
   list-style: square;
 `;
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
 const TeamCard = ({ team, onClick, selected, onDelete, onManageMembers }) => {
   const handleCardClick = () => {
     if (onClick) onClick(team);
@@ -126,10 +125,7 @@ const TeamCard = ({ team, onClick, selected, onDelete, onManageMembers }) => {
       setMembersErr('');
       
       try {
-        const res = await fetch(`${API_BASE}/teams/${team.team_id}/members`);
-        if (!res.ok) throw new Error('Failed to load members');
-        
-        const data = await res.json();
+        const data = await GET(`/teams/${team.team_id}/members`);
         const list = Array.isArray(data) ? data : [];
         
         if (!cancelled) setMembers(list);
