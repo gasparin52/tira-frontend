@@ -79,7 +79,19 @@ const TeamMembersModal = ({ isOpen, onClose, team }) => {
     if (!email) return;
 
     try {
-      await POST(`/teams/${team.team_id}/members`, { email });
+      // First, find the user by email
+      const users = await GET(`/users?email=${encodeURIComponent(email)}`);
+      const userList = Array.isArray(users) ? users : users?.users || [];
+      
+      if (userList.length === 0) {
+        alert('User not found with that email');
+        return;
+      }
+
+      const user = userList[0];
+      
+      // Then add the user to the team using user_id
+      await POST(`/teams/${team.team_id}/members`, { user_id: user.user_id });
 
       setEmail('');
       

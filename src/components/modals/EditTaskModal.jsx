@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import ModalContainer from './ModalContainer';
-import { PATCH } from '../../utils/api';
+import { callAPI } from '../../utils/api';
 
 const Form = styled.form`
   display: grid;
@@ -155,7 +155,34 @@ const EditTaskModal = ({ isOpen, onClose, task, onSuccess }) => {
       if (formData.description !== task.description) payload.description = formData.description || null;
       if (formData.status !== task.status) payload.status = formData.status;
       if (formData.priority !== task.priority) payload.priority = formData.priority;
-      if (formData.assigned_to !== task.assigned_to) payload.assigned_to = formData.assigned_to;
+
+      // If assigned_to changed and it looks like an email, search for user first
+      if (formData.assigned_to !== task.assigned_to) {
+        const assignValue = formData.assigned_to.trim();
+        
+        if (assignValue && assignValue.includes('@')) {
+          // It's an email, search for the user
+          try {
+            const users = await callAPI(`/users?email=${encodeURIComponent(assignValue)}`, 'GET');
+            const userList = Array.isArray(users) ? users : users?.users || [];
+            
+            if (userList.length === 0) {
+              setErr('User not found with that email');
+              setSubmitting(false);
+              return;
+            }
+
+            payload.assigned_to = userList[0].user_id;
+          } catch (error) {
+            setErr(`Error finding user: ${error.message}`);
+            setSubmitting(false);
+            return;
+          }
+        } else {
+          // It's a user_id or empty
+          payload.assigned_to = assignValue || null;
+        }
+      }
 
       const newDeadline = formData.deadline ? new Date(formData.deadline).toISOString() : null;
       const oldDeadline = task.deadline ? new Date(task.deadline).toISOString() : null;
@@ -167,7 +194,7 @@ const EditTaskModal = ({ isOpen, onClose, task, onSuccess }) => {
         return;
       }
 
-      await PATCH(`/tasks/${task.task_id}`, payload);
+      await callAPI(`/tasks/${task.task_id}`, 'PATCH', payload);
 
       if (onSuccess) onSuccess();
       onClose();
@@ -238,11 +265,12 @@ const EditTaskModal = ({ isOpen, onClose, task, onSuccess }) => {
         </Label>
 
         <Label>
-          Assigned To (User ID)
+          Assigned To (Email or User ID)
           <Input
             type="text"
             value={formData.assigned_to}
             onChange={e => setFormData(f => ({ ...f, assigned_to: e.target.value }))}
+            placeholder="user@example.com or user_id"
           />
         </Label>
 

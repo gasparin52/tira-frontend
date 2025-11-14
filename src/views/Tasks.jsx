@@ -200,7 +200,7 @@ export default function Tasks() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalTasks, setTotalTasks] = useState(0);
-  const tasksPerPage = 5;
+  const tasksPerPage = 4;
   const totalPages = Math.ceil(totalTasks / tasksPerPage);
 
   useEffect(() => { if (qpTeam) { setTeamId(qpTeam); localStorage.setItem('team_id', qpTeam); } }, [qpTeam]);
@@ -246,7 +246,7 @@ export default function Tasks() {
 
   useEffect(() => {
     loadTasks(1);
-  }, [teamId, filterStatus, filterPriority]);
+  }, [teamId, filterStatus, filterPriority, loadTasks]);
 
   const handleClearFilters = () => {
     setFilterStatus('');

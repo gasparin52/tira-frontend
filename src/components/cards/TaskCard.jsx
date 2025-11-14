@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { callAPI } from '../../utils/api';
 
 const Card = styled.div`
   border: 1px solid #eee;
@@ -168,6 +169,44 @@ const TaskCard = ({ task, onEdit, onDelete, onClick }) => {
     const status = task?.status || 'pending';
     const sLabel = statusLabel(status);
     const priority = task?.priority || 'medium';
+    
+    const [assignedName, setAssignedName] = useState('');
+    const [createdName, setCreatedName] = useState('');
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const fetchUserName = async (userId) => {
+            if (!userId) return '';
+            try {
+                const data = await callAPI(`/users?user_id=${encodeURIComponent(userId)}`, 'GET');
+                const list = Array.isArray(data) ? data : (data?.users || []);
+                return list[0]?.username || userId;
+            } catch {
+                return userId;
+            }
+        };
+
+        const loadUserNames = async () => {
+            const [assigned, created] = await Promise.all([
+                fetchUserName(task?.assigned_to),
+                fetchUserName(task?.created_by)
+            ]);
+            
+            if (!cancelled) {
+                setAssignedName(assigned);
+                setCreatedName(created);
+            }
+        };
+
+        if (task?.assigned_to || task?.created_by) {
+            loadUserNames();
+        }
+
+        return () => {
+            cancelled = true;
+        };
+    }, [task?.assigned_to, task?.created_by]);
 
     const handleCardClick = () => {
         if (onClick) onClick(task);
@@ -198,6 +237,16 @@ const TaskCard = ({ task, onEdit, onDelete, onClick }) => {
             </TaskCardHeader>
             <TaskCardBody>
                 <TaskDescription>{task?.description || 'No description'}</TaskDescription>
+                {task?.assigned_to && (
+                    <MetaText style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                        Assigned to: {assignedName || task.assigned_to}
+                    </MetaText>
+                )}
+                {task?.created_by && (
+                    <MetaText style={{ display: 'block', marginBottom: '8px', fontSize: '0.85em' }}>
+                        Created by: {createdName || task.created_by}
+                    </MetaText>
+                )}
                 <TaskMeta>
                     <LeftMeta>
                         <TaskStatus className={status}>{sLabel}</TaskStatus>
