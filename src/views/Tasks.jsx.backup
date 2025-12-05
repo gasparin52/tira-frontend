@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import styled from 'styled-components';
 import Wrapper from '../components/wrapper';
 import TaskCard from '../components/cards/TaskCard';
@@ -7,11 +7,6 @@ import TaskDetailModal from '../components/modals/TaskDetailModal';
 import EditTaskModal from '../components/modals/EditTaskModal';
 import { useSearchParams } from 'react-router-dom';
 import { callAPI, normalizePaginatedResponse } from '../utils/api';
-import { AnimatedDropdown } from '../components/common';
-import {
-  Input, Textarea, Select as FormSelect, Label, Form,
-  ButtonRow, CancelButton, PrimaryButton
-} from '../components/common/StyledFormComponents';
 
 const Page = styled.div`
   padding: 2rem;
@@ -75,6 +70,91 @@ const AddButton = styled.button`
   }
 `;
 
+const Form = styled.form`
+  display: grid;
+  gap: 16px;
+`;
+
+const Label = styled.label`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 500;
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+
+  &:focus {
+    outline: none;
+    border-color: #4a90e2;
+  }
+`;
+
+const Textarea = styled.textarea`
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  resize: vertical;
+
+  &:focus {
+    outline: none;
+    border-color: #4a90e2;
+  }
+`;
+
+const FormSelect = styled.select`
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+
+  &:focus {
+    outline: none;
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 3px #4a90e233;
+  }
+`;
+
+const ButtonRow = styled.div`
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+`;
+
+const Button = styled.button`
+  padding: 8px 16px;
+  border: 1px solid #cf1818;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  background-color: #e23f3f;
+  color: white;
+
+  &:hover {
+    background-color: #ce2525;
+  }
+`;
+
+const PrimaryButton = styled(Button)`
+  background-color: #4a90e2;
+  color: white;
+  border-color: #4a90e2;
+
+  &:hover {
+    background-color: #3b78c1;
+  }
+`;
+
 const PaginationContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -108,6 +188,132 @@ const PageInfo = styled.span`
   color: #555;
 `;
 
+const DropdownContainer = styled.div`
+  position: relative;
+  min-width: 100px;
+`;
+
+const DropdownButton = styled.button`
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  background: #ffffff;
+  border: 1px solid #ddd;
+  color: #222;
+  box-shadow: 0 1px 4px rgba(74, 145, 226, 0.158);
+  transition: border-color 0.16s, box-shadow 0.16s;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  opacity: 0.9;
+
+  &:focus {
+    outline: none;
+    border-color: #3b77c14d;
+    box-shadow: 0 0 0 1px #4a91e2;
+  }
+
+  &:hover {
+    border-color: #3b77c14d;
+  }
+`;
+
+const DropdownList = styled.ul`
+  position: absolute;
+  top: 105%;
+  left: 0;
+  width: 100%;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(74, 144, 226, 0.09);
+  border: 1px solid rgba(74, 144, 226, 0.12);
+  margin: 0;
+  padding: 2px 0;
+  list-style: none;
+  z-index: 10;
+  opacity: ${props => (props.open ? 1 : 0)};
+  transform: scaleY(${props => (props.open ? 1 : 0.95)});
+  transform-origin: top center;
+  pointer-events: ${props => (props.open ? 'auto' : 'none')};
+  transition: opacity 0.14s, transform 0.14s;
+`;
+
+const DropdownItem = styled.li`
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #222;
+  border-radius: 6px;
+  transition: background 0.12s;
+
+  &:hover {
+    background: #eaf6ff;
+  }
+`;
+
+const ArrowIcon = styled.img`
+  margin-left: auto;
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  transition: transform 0.18s cubic-bezier(.4,0,.2,1);
+  transform: rotate(${props => (props.open ? 180 : 0)}deg);
+  opacity: 0.7;
+`;
+
+// 🔧 AnimatedDropdown ARREGLADO
+function AnimatedDropdown({ value, options, onChange, placeholder }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    }
+
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open]);
+
+  const selectedLabel =
+    options.find(opt => opt.value === value)?.label || placeholder;
+
+  return (
+    <DropdownContainer ref={containerRef}>
+      <DropdownButton
+        type="button"
+        onClick={() => setOpen(o => !o)}
+      >
+        {selectedLabel}
+        <ArrowIcon src="/icons/arrow.svg" alt="arrow" open={open} />
+      </DropdownButton>
+      <DropdownList open={open}>
+        {options.map(opt => (
+          <DropdownItem
+            key={opt.value}
+            onClick={() => {
+              onChange(opt.value);
+              setOpen(false);
+            }}
+          >
+            {opt.label}
+          </DropdownItem>
+        ))}
+      </DropdownList>
+    </DropdownContainer>
+  );
+}
+
 export default function Tasks() {
   const [search] = useSearchParams();
   const qpTeam = search.get('team_id') || '';
@@ -136,6 +342,8 @@ export default function Tasks() {
 
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
+  const [filterTag, setFilterTag] = useState('');
+  const [availableTags, setAvailableTags] = useState([]);
 
   // toda la info de páginas viene del backend
   const [page, setPage] = useState(1);
@@ -150,6 +358,24 @@ export default function Tasks() {
       localStorage.setItem('team_id', qpTeam);
     }
   }, [qpTeam]);
+
+  // Load available tags for the selected team
+  useEffect(() => {
+    async function fetchTags() {
+      if (!teamId) {
+        setAvailableTags([]);
+        return;
+      }
+      try {
+        const data = await callAPI(`/tags/teams/${teamId}`);
+        const normalized = normalizePaginatedResponse(data);
+        setAvailableTags(normalized.items || data.data || []);
+      } catch {
+        setAvailableTags([]);
+      }
+    }
+    fetchTags();
+  }, [teamId]);
 
   const loadTasks = useCallback(
     async (pageToLoad = 1) => {
@@ -166,6 +392,9 @@ export default function Tasks() {
         }
         if (filterPriority) {
           url += `&priority=${encodeURIComponent(filterPriority)}`;
+        }
+        if (filterTag) {
+          url += `&tag_id=${encodeURIComponent(filterTag)}`;
         }
 
         const data = await callAPI(url);
@@ -189,18 +418,19 @@ export default function Tasks() {
         setLoading(false);
       }
     },
-    [teamId, pageSize, filterStatus, filterPriority]
+    [teamId, pageSize, filterStatus, filterPriority, filterTag]
   );
 
   // Cuando cambia el team o los filtros, siempre volvemos a la página 1
   useEffect(() => {
     if (!teamId) return;
     loadTasks(1);
-  }, [teamId, filterStatus, filterPriority, loadTasks]);
+  }, [teamId, filterStatus, filterPriority, filterTag, loadTasks]);
 
   const handleClearFilters = () => {
     setFilterStatus('');
     setFilterPriority('');
+    setFilterTag('');
   };
 
   const handleTaskClick = task => {
@@ -312,7 +542,19 @@ export default function Tasks() {
                 { value: 'high', label: 'High' },
               ]}
             />
-            {(filterStatus || filterPriority) && (
+            <AnimatedDropdown
+              value={filterTag}
+              onChange={setFilterTag}
+              placeholder="All Tags"
+              options={[
+                { value: '', label: 'All Tags' },
+                ...availableTags.map(tag => ({
+                  value: tag.tag_id,
+                  label: tag.name,
+                })),
+              ]}
+            />
+            {(filterStatus || filterPriority || filterTag) && (
               <ClearButton onClick={handleClearFilters}>
                 Clear Filters
               </ClearButton>
@@ -444,9 +686,9 @@ export default function Tasks() {
               </div>
             )}
             <ButtonRow>
-              <CancelButton type="button" onClick={() => setIsNewOpen(false)}>
+              <Button type="button" onClick={() => setIsNewOpen(false)}>
                 Cancel
-              </CancelButton>
+              </Button>
               <PrimaryButton type="submit">Create</PrimaryButton>
             </ButtonRow>
           </Form>

@@ -1,11 +1,17 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import styled from 'styled-components';
 import Wrapper from '../components/wrapper';
 import TeamCard from '../components/cards/TeamCard';
 import ModalContainer from '../components/modals/ModalContainer';
 import TeamMembersModal from '../components/modals/TeamMembersModal';
+import TeamTagsModal from '../components/modals/TeamTagsModal';
+import AlertModal from '../components/modals/AlertModal';
 import { useNavigate } from 'react-router-dom';
-import { callAPI } from '../utils/api';
+import { callAPI, normalizePaginatedResponse } from '../utils/api';
+import {
+  Form, Label, Input as FormInput, ButtonRow,
+  CancelButton, PrimaryButton as SubmitButton
+} from '../components/common/StyledFormComponents';
 
 const TeamsContainer = styled.div`
   display: flex;
@@ -14,6 +20,7 @@ const TeamsContainer = styled.div`
   padding: 2rem;
   align-items: center;
   justify-content: flex-start;
+  width: 100%;
 `;
 
 const HeaderRow = styled.div`
@@ -21,16 +28,18 @@ const HeaderRow = styled.div`
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 0 2rem;
+  max-width: 1200px;
+  margin-bottom: 1rem;
 `;
 
 const TeamCardContainer = styled.div`
   display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin: 1rem 0;
-  padding: 0 2rem;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
   width: 100%;
+  max-width: 1200px;
 `;
 
 const TeamTitle = styled.h2`
@@ -55,54 +64,6 @@ const AddButton = styled.button`
   &:hover { background: #3b78c1; }
 `;
 
-const Form = styled.form`
-  display: grid;
-  gap: 16px;
-`;
-
-const Label = styled.label`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-weight: 500;
-`;
-
-const FormInput = styled.input`
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-  &:focus { outline: none; border-color: #4a90e2; }
-`;
-
-const ButtonRow = styled.div`
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-top: 8px;
-`;
-
-const CancelButton = styled.button`
-  padding: 8px 16px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  cursor: pointer;
-  background: #cd2b2b;
-  color: #fff;
-  &:hover { background: #a51c19; }
-`;
-
-const SubmitButton = styled.button`
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  background: #4a90e2;
-  color: white;
-  &:hover { background: #3b78c1; }
-`;
-
 function Teams() {
   const navigate = useNavigate();
   const userId = localStorage.getItem('user_id') || '';
@@ -116,7 +77,14 @@ function Teams() {
   const [createErr, setCreateErr] = useState('');
 
   const [isMembersOpen, setIsMembersOpen] = useState(false);
+  const [isTagsOpen, setIsTagsOpen] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
+
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertType, setAlertType] = useState('alert'); // 'alert' | 'confirm'
+  const alertOnAcceptRef = useRef(() => {});
+  const alertOnCancelRef = useRef(() => {});
 
   const loadTeams = useCallback(async () => {
     if (!userId) return;
@@ -124,7 +92,8 @@ function Teams() {
     setErr('');
     try {
       const data = await callAPI(`/teams/user/${userId}`);
-      setTeams(Array.isArray(data) ? data : []);
+      const normalized = normalizePaginatedResponse(data);
+      setTeams(normalized.items);
     } catch (e) {
       setErr(e.message || 'Error loading teams');
     } finally {
@@ -161,18 +130,33 @@ function Teams() {
   };
 
   const handleDeleteTeam = async (teamId) => {
-    if (!confirm('Delete this team? This action cannot be undone.')) return;
-    try {
-      await callAPI(`/teams/${teamId}`, 'DELETE');
-      loadTeams();
-    } catch (e) {
-      alert(`Error: ${e.message}`);
-    }
+    setAlertType('confirm');
+    setAlertMessage('Delete this team? This action cannot be undone.');
+    setAlertOpen(true);
+    alertOnAcceptRef.current = async () => {
+      setAlertOpen(false);
+      try {
+        await callAPI(`/teams/${teamId}`, 'DELETE');
+        loadTeams();
+      } catch (e) {
+        setAlertType('alert');
+        setAlertMessage(`Error: ${e.message}`);
+        setAlertOpen(true);
+        alertOnAcceptRef.current = () => setAlertOpen(false);
+        alertOnCancelRef.current = () => setAlertOpen(false);
+      }
+    };
+    alertOnCancelRef.current = () => setAlertOpen(false);
   };
 
   const handleManageMembers = (team) => {
     setSelectedTeam(team);
     setIsMembersOpen(true);
+  };
+
+  const handleManageTags = (team) => {
+    setSelectedTeam(team);
+    setIsTagsOpen(true);
   };
 
   return (
@@ -199,6 +183,7 @@ function Teams() {
               onClick={() => handleSelect(team)}
               onDelete={handleDeleteTeam}
               onManageMembers={handleManageMembers}
+              onManageTags={handleManageTags}
             />
           ))}
         </TeamCardContainer>
@@ -221,6 +206,21 @@ function Teams() {
           isOpen={isMembersOpen}
           onClose={() => setIsMembersOpen(false)}
           team={selectedTeam}
+        />
+
+        <TeamTagsModal
+          isOpen={isTagsOpen}
+          onClose={() => setIsTagsOpen(false)}
+          team={selectedTeam}
+        />
+
+        <AlertModal
+          isOpen={alertOpen}
+          title={alertType === 'confirm' ? 'Confirm' : 'Alert'}
+          message={alertMessage}
+          onAccept={alertOnAcceptRef.current}
+          onCancel={alertOnCancelRef.current}
+          showCancel={alertType === 'confirm'}
         />
       </TeamsContainer>
     </Wrapper>

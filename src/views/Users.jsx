@@ -5,6 +5,11 @@ import ModalContainer from '../components/modals/ModalContainer';
 import EditUserModal from '../components/modals/EditUserModal';
 import PasswordInput from '../components/buttons/PasswordInput';
 import { callAPI, normalizeUsers } from '../utils/api';
+import { AnimatedDropdown } from '../components/common';
+import {
+  Input, Label, Select, Form, Button, ButtonRow,
+  CancelButton, PrimaryButton, ErrorMessage
+} from '../components/common/StyledFormComponents';
 
 const Page = styled.div`
   padding: 2rem;
@@ -29,45 +34,6 @@ const SearchRow = styled.div`
   display: flex;
   gap: 0.5rem;
   align-items: center;
-`;
-
-const Input = styled.input`
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-  min-width: 200px;
-
-  &:focus {
-    outline: none;
-    border-color: #4a90e2;
-  }
-`;
-
-const Select = styled.select`
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-
-  &:focus {
-    outline: none;
-    border-color: #4a90e2;
-  }
-`;
-
-const Button = styled.button`
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  background: #4a90e2;
-  color: white;
-
-  &:hover {
-    background: #3b78c1;
-  }
 `;
 
 const AddButton = styled.button`
@@ -123,63 +89,6 @@ const ActionButton = styled.button`
 
   &:hover {
     opacity: 0.8;
-  }
-`;
-
-const Form = styled.form`
-  display: grid;
-  gap: 16px;
-`;
-
-const Label = styled.label`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-weight: 500;
-`;
-
-const FormInput = styled.input`
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-
-  &:focus {
-    outline: none;
-    border-color: #4a90e2;
-  }
-`;
-
-const ButtonRow = styled.div`
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-top: 8px;
-`;
-
-const CancelButton = styled.button`
-  padding: 8px 16px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  cursor: pointer;
-  background: #cd2b2b;
-
-  &:hover {
-    background: #a51c19;
-  }
-`;
-
-const SubmitButton = styled.button`
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  background: #4a90e2;
-  color: white;
-
-  &:hover {
-    background: #3b78c1;
   }
 `;
 
@@ -256,10 +165,15 @@ export default function Users(){
         </HeaderRow>
 
         <SearchRow>
-          <Select value={searchType} onChange={e => setSearchType(e.target.value)}>
-            <option value="username">Username</option>
-            <option value="user_id">UUID</option>
-          </Select>
+          <AnimatedDropdown
+            value={searchType}
+            onChange={setSearchType}
+            placeholder="Search by"
+            options={[
+              { value: 'username', label: 'Username' },
+              { value: 'user_id', label: 'UUID' }
+            ]}
+          />
           <Input placeholder={`Search by ${searchType}...`} value={searchValue} onChange={e => setSearchValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()} />
           <Button onClick={handleSearch}>Search</Button>
           <Button onClick={() => { setSearchValue(''); loadUsers(); }}>Clear</Button>
@@ -280,14 +194,14 @@ export default function Users(){
               </tr>
             </thead>
             <tbody>
-              {users.map(u => (
-                <tr key={u.user_id}>
-                  <Td>{u.username}</Td>
-                  <Td>{u.email}</Td>
-                  <Td>{u.role}</Td>
+              {users.map(user => (
+                <tr key={user.user_id}>
+                  <Td>{user.username}</Td>
+                  <Td>{user.email}</Td>
+                  <Td>{user.role}</Td>
                   <Td>
-                    <ActionButton onClick={() => openEdit(u)}>Edit</ActionButton>
-                    <ActionButton danger onClick={() => handleDelete(u.user_id)}>Delete</ActionButton>
+                    <ActionButton onClick={() => openEdit(user)}>Edit</ActionButton>
+                    <ActionButton danger onClick={() => handleDelete(user.user_id)}>Delete</ActionButton>
                   </Td>
                 </tr>
               ))}
@@ -297,14 +211,14 @@ export default function Users(){
 
         <ModalContainer isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Create User">
           <Form onSubmit={handleCreate}>
-            <Label>Username<FormInput value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} required /></Label>
-            <Label>Email<FormInput type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required /></Label>
+            <Label>Username<Input value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} required /></Label>
+            <Label>Email<Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required /></Label>
             <Label>Password<PasswordInput value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required autoComplete="new-password" /></Label>
             <Label>Role<Select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}><option value="user">user</option><option value="leader">leader</option></Select></Label>
-            {err && <div style={{ color: 'crimson' }}>{err}</div>}
+            {err && <ErrorMessage>{err}</ErrorMessage>}
             <ButtonRow>
               <CancelButton type="button" onClick={() => setIsCreateOpen(false)}>Cancel</CancelButton>
-              <SubmitButton type="submit">Create</SubmitButton>
+              <PrimaryButton type="submit">Create</PrimaryButton>
             </ButtonRow>
           </Form>
         </ModalContainer>

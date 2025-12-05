@@ -1,105 +1,80 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import ModalContainer from './ModalContainer';
-import { callAPI } from '../../utils/api';
+import { callAPI, normalizePaginatedResponse } from '../../utils/api';
+import { formatDateTimeLocal } from '../../utils/dateUtils';
+import {
+  Form, Label, Input, Textarea, Select, ButtonRow,
+  CancelButton, PrimaryButton as SubmitButton, ErrorMessage
+} from '../common/StyledFormComponents';
 
-const Form = styled.form`
-  display: grid;
-  gap: 16px;
-`;
-
-const Label = styled.label`
+const TagsSection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0.5rem;
+`;
+
+const TagsSectionTitle = styled.div`
   font-weight: 500;
+  font-size: 0.95em;
+  margin-bottom: 0.25rem;
 `;
 
-const Input = styled.input`
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-
-  &:focus {
-    outline: none;
-    border-color: #4a90e2;
-  }
-`;
-
-const Textarea = styled.textarea`
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-  resize: vertical;
-  min-height: 80px;
-  font-family: inherit;
-
-  &:focus {
-    outline: none;
-    border-color: #4a90e2;
-  }
-`;
-
-const Select = styled.select`
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-
-  &:focus {
-    outline: none;
-    border-color: #4a90e2;
-  }
-`;
-
-const ButtonRow = styled.div`
+const TagsContainer = styled.div`
   display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-top: 8px;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid #e1e4e8;
+  border-radius: 4px;
+  min-height: 40px;
 `;
 
-const CancelButton = styled.button`
-  padding: 8px 16px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+const TagBadge = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85em;
+  font-weight: 500;
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #90caf9;
   cursor: pointer;
-  background: #cd2b2b;
-  color: #fff;
+  transition: opacity 0.2s;
 
   &:hover {
-    background: #a51c19;
+    opacity: 0.8;
   }
 `;
 
-const SubmitButton = styled.button`
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
+const RemoveTagBtn = styled.span`
   cursor: pointer;
-  background: #4a90e2;
-  color: white;
+  font-weight: bold;
 
   &:hover {
-    background: #3b78c1;
-  }
-
-  &:disabled {
-    background: #ccc;
-    cursor: not-allowed;
+    transform: scale(1.2);
   }
 `;
 
-const ErrorMessage = styled.div`
-  color: #dc3545;
-  font-size: .9em;
-  padding: 8px;
-  background: #f8d7da;
+const AvailableTagsContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: #f8f9fa;
   border-radius: 4px;
+  max-height: 100px;
+  overflow-y: auto;
+`;
+
+const AddTagBadge = styled(TagBadge)`
+  opacity: 0.7;
+
+  &:hover {
+    opacity: 1;
+  }
 `;
 
 const EditTaskModal = ({ isOpen, onClose, task, onSuccess }) => {
@@ -113,6 +88,9 @@ const EditTaskModal = ({ isOpen, onClose, task, onSuccess }) => {
   });
   const [err, setErr] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [availableTags, setAvailableTags] = useState([]);
+  const [taskTags, setTaskTags] = useState([]);
+  const [loadingTags, setLoadingTags] = useState(false);
 
   useEffect(() => {
     if (task) {
@@ -124,21 +102,46 @@ const EditTaskModal = ({ isOpen, onClose, task, onSuccess }) => {
         deadline: task.deadline ? formatDateTimeLocal(task.deadline) : '',
         assigned_to: task.assigned_to || ''
       });
+
+      const loadTags = async () => {
+        if (!task?.task_id || !task?.team_id) return;
+
+        setLoadingTags(true);
+        try {
+          // Load available tags from team
+          const teamTagsData = await callAPI(`/tags/teams/${task.team_id}`, 'GET');
+          const normalizedTeamTags = normalizePaginatedResponse(teamTagsData);
+          setAvailableTags(normalizedTeamTags.items);
+
+          // Load current task tags
+          const taskTagsData = await callAPI(`/tags/tasks/${task.task_id}`, 'GET');
+          setTaskTags(Array.isArray(taskTagsData) ? taskTagsData : []);
+        } catch {
+          // Error loading tags - silent fail
+        } finally {
+          setLoadingTags(false);
+        }
+      };
+
+      loadTags();
     }
   }, [task]);
 
-  const formatDateTimeLocal = (isoString) => {
-    if (!isoString) return '';
+  const handleAddTag = async (tag) => {
     try {
-      const d = new Date(isoString);
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      const h = String(d.getHours()).padStart(2, '0');
-      const min = String(d.getMinutes()).padStart(2, '0');
-      return `${y}-${m}-${day}T${h}:${min}`;
-    } catch {
-      return '';
+      await callAPI(`/tags/tasks/${task.task_id}`, 'POST', { tag_id: tag.tag_id });
+      setTaskTags(prev => [...prev, tag]);
+    } catch (e) {
+      alert(`Error adding tag: ${e.message}`);
+    }
+  };
+
+  const handleRemoveTag = async (tagId) => {
+    try {
+      await callAPI(`/tags/tasks/${task.task_id}/${tagId}`, 'DELETE');
+      setTaskTags(prev => prev.filter(t => t.tag_id !== tagId));
+    } catch (e) {
+      alert(`Error removing tag: ${e.message}`);
     }
   };
 
@@ -159,20 +162,20 @@ const EditTaskModal = ({ isOpen, onClose, task, onSuccess }) => {
       // If assigned_to changed and it looks like an email, search for user first
       if (formData.assigned_to !== task.assigned_to) {
         const assignValue = formData.assigned_to.trim();
-        
+
         if (assignValue && assignValue.includes('@')) {
           // It's an email, search for the user
           try {
-            const users = await callAPI(`/users?email=${encodeURIComponent(assignValue)}`, 'GET');
-            const userList = Array.isArray(users) ? users : users?.users || [];
-            
-            if (userList.length === 0) {
+            const { findUserByEmail } = await import('../../utils/api');
+            const user = await findUserByEmail(assignValue);
+
+            if (!user) {
               setErr('User not found with that email');
               setSubmitting(false);
               return;
             }
 
-            payload.assigned_to = userList[0].user_id;
+            payload.assigned_to = user.user_id;
           } catch (error) {
             setErr(`Error finding user: ${error.message}`);
             setSubmitting(false);
@@ -273,6 +276,44 @@ const EditTaskModal = ({ isOpen, onClose, task, onSuccess }) => {
             placeholder="user@example.com or user_id"
           />
         </Label>
+
+        {/* Tags Section */}
+        <TagsSection>
+          <TagsSectionTitle>Tags</TagsSectionTitle>
+
+          {/* Current Tags */}
+          <TagsContainer>
+            {loadingTags && <div style={{ fontSize: '0.85em', color: '#666' }}>Loading tags...</div>}
+            {!loadingTags && taskTags.length === 0 && (
+              <div style={{ fontSize: '0.85em', color: '#999' }}>No tags assigned</div>
+            )}
+            {!loadingTags && taskTags.map(tag => (
+              <TagBadge key={tag.tag_id}>
+                {tag.name}
+                <RemoveTagBtn onClick={() => handleRemoveTag(tag.tag_id)}>×</RemoveTagBtn>
+              </TagBadge>
+            ))}
+          </TagsContainer>
+
+          {/* Available Tags */}
+          {!loadingTags && availableTags.length > 0 && (
+            <>
+              <TagsSectionTitle style={{ fontSize: '0.85em', color: '#666' }}>Available Tags (click to add)</TagsSectionTitle>
+              <AvailableTagsContainer>
+                {availableTags
+                  .filter(tag => !taskTags.some(t => t.tag_id === tag.tag_id))
+                  .map(tag => (
+                    <AddTagBadge key={tag.tag_id} onClick={() => handleAddTag(tag)}>
+                      + {tag.name}
+                    </AddTagBadge>
+                  ))}
+                {availableTags.every(tag => taskTags.some(t => t.tag_id === tag.tag_id)) && (
+                  <div style={{ fontSize: '0.85em', color: '#999' }}>All tags assigned</div>
+                )}
+              </AvailableTagsContainer>
+            </>
+          )}
+        </TagsSection>
 
         {err && <ErrorMessage>{err}</ErrorMessage>}
 

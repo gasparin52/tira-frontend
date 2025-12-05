@@ -76,13 +76,14 @@ const CollapsibleContainer = styled(SideBarContainer)`
   &.collapsed ${Label} { display: none; }
 `;
 
-export default function SideBar() {
+export default function SideBar({ onCollapsedChange }) {
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('sidebar_collapsed') === '1'; } catch { return false; }
   });
   useEffect(() => {
     try { localStorage.setItem('sidebar_collapsed', collapsed ? '1' : '0'); } catch (error) { console.error('Failed to save sidebar state:', error); }
-  }, [collapsed]);
+    if (onCollapsedChange) onCollapsedChange(collapsed);
+  }, [collapsed, onCollapsedChange]);
   const toggleCollapsed = () => setCollapsed((c) => !c);
   return (
     <CollapsibleContainer className={collapsed ? 'collapsed' : ''}>
@@ -109,9 +110,9 @@ export default function SideBar() {
           </ItemLink>
         </li>
         <li>
-          <ItemLink to="/kanban" end title="Kanban">
-            <IconImg src="/icons/table.svg" alt="Comments" />
-            <Label>Comments</Label>
+          <ItemLink to="/activity" end title="Activity">
+            <IconImg src="/icons/table.svg" alt="Activity" />
+            <Label>Activity</Label>
           </ItemLink>
         </li>
       </List>

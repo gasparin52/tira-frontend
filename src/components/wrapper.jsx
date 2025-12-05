@@ -3,20 +3,21 @@ import styled from 'styled-components';
 import SideBar from './SideBar';
 
 const Container = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   display: grid;
-  grid-template-columns: 1fr 80%;
+  grid-template-columns: ${({ sidebarCollapsed }) => sidebarCollapsed ? '60px 1fr' : '15vw 1fr'};
   height: calc(100vh - 10vh);
   width: 100%;
+  transition: grid-template-columns 0.3s ease;
 `;
 
 function Wrapper({ children }) {
+  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(() => {
+    try { return localStorage.getItem('sidebar_collapsed') === '1'; } catch { return false; }
+  });
+
   return (
-    <Container>
-      <SideBar />
+    <Container sidebarCollapsed={sidebarCollapsed}>
+      <SideBar onCollapsedChange={setSidebarCollapsed} />
       {children}
     </Container>
   );

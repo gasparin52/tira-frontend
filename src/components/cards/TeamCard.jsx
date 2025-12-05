@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { GET } from '../../utils/api';
+import { GET, normalizePaginatedResponse } from '../../utils/api';
 
 const StyledTeamCard = styled.div`
   border: 1px solid #ccc;
-  border-radius: 1rem;
-  padding: 16px;
-  width: 25vw;
+  border-radius: 8px;
+  padding: .8rem;
+  margin: .4rem 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,.1);
   cursor: pointer;
   background-color: white;
   position: relative;
@@ -78,10 +79,26 @@ const MembersToggle = styled.button`
   font-size: .9em;
   text-decoration: none;
   margin: .8rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 
   &:hover {
     color: #080809c7;
   }
+`;
+
+const Arrow = styled.span`
+  display: inline-block;
+  transition: transform 0.3s ease;
+  transform: ${({ open }) => open ? 'rotate(90deg)' : 'rotate(0deg)'};
+  font-weight: bold;
+`;
+
+const MembersListWrapper = styled.div`
+  overflow: hidden;
+  max-height: ${({ open }) => open ? '200px' : '0'};
+  transition: max-height 0.3s ease;
 `;
 
 const MembersList = styled.ul`
@@ -94,7 +111,7 @@ const MembersList = styled.ul`
   list-style: square;
 `;
 
-const TeamCard = ({ team, onClick, selected, onDelete, onManageMembers }) => {
+const TeamCard = ({ team, onClick, selected, onDelete, onManageMembers, onManageTags }) => {
   const handleCardClick = () => {
     if (onClick) onClick(team);
   };
@@ -109,13 +126,17 @@ const TeamCard = ({ team, onClick, selected, onDelete, onManageMembers }) => {
     if (onManageMembers) onManageMembers(team);
   };
 
+  const handleTags = (e) => {
+    e.stopPropagation();
+    if (onManageTags) onManageTags(team);
+  };
+
   const [membersOpen, setMembersOpen] = useState(false);
   const [members, setMembers] = useState([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [membersErr, setMembersErr] = useState('');
 
   useEffect(() => {
-    if (!membersOpen) return;
     if (members.length > 0) return;
     
     let cancelled = false;
@@ -126,9 +147,9 @@ const TeamCard = ({ team, onClick, selected, onDelete, onManageMembers }) => {
       
       try {
         const data = await GET(`/teams/${team.team_id}/members`);
-        const list = Array.isArray(data) ? data : [];
+        const normalized = normalizePaginatedResponse(data);
         
-        if (!cancelled) setMembers(list);
+        if (!cancelled) setMembers(normalized.items);
       } catch (e) {
         if (!cancelled) setMembersErr(e.message || 'Error loading members');
       } finally {
@@ -141,7 +162,7 @@ const TeamCard = ({ team, onClick, selected, onDelete, onManageMembers }) => {
     return () => {
       cancelled = true;
     };
-  }, [membersOpen, team?.team_id, members.length]);
+  }, [team?.team_id, members.length]);
 
   return (
     <StyledTeamCard 
@@ -149,6 +170,11 @@ const TeamCard = ({ team, onClick, selected, onDelete, onManageMembers }) => {
       onClick={handleCardClick}
     >
       <TeamActions>
+        {onManageTags && (
+          <ActionBtn onClick={handleTags} title="Manage tags">
+            <img src="/icons/tag.svg" alt="tags" />
+          </ActionBtn>
+        )}
         {onManageMembers && (
           <ActionBtn onClick={handleMembers} title="Manage members">
             <img src="/icons/users.svg" alt="users" />
@@ -171,25 +197,24 @@ const TeamCard = ({ team, onClick, selected, onDelete, onManageMembers }) => {
             setMembersOpen(o => !o);
           }}
         >
+          <Arrow open={membersOpen}>›</Arrow>
           {membersOpen ? 'Hide members' : 'Show members'}
           {members.length > 0 ? ` (${members.length})` : ''}
         </MembersToggle>
         
-        {membersOpen && (
-          <div>
-            {loadingMembers && <div>Loading members…</div>}
-            {membersErr && <div style={{ color: 'crimson' }}>{membersErr}</div>}
-            {!loadingMembers && !membersErr && (
-              <MembersList>
-                {members.map(m => (
-                  <li key={m.user_id}>
-                    {m.username || m.email || m.user_id}
-                  </li>
-                ))}
-              </MembersList>
-            )}
-          </div>
-        )}
+        <MembersListWrapper open={membersOpen}>
+          {loadingMembers && <div>Loading members…</div>}
+          {membersErr && <div style={{ color: 'crimson' }}>{membersErr}</div>}
+          {!loadingMembers && !membersErr && (
+            <MembersList>
+              {members.map(m => (
+                <li key={m.user_id}>
+                  {m.username || m.email || m.user_id}
+                </li>
+              ))}
+            </MembersList>
+          )}
+        </MembersListWrapper>
       </div>
     </StyledTeamCard>
   );

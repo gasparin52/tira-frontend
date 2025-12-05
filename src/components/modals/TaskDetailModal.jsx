@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import ModalContainer from './ModalContainer';
-import { callAPI } from '../../utils/api';
+import { callAPI, normalizePaginatedResponse } from '../../utils/api';
+import { formatDate } from '../../utils/dateUtils';
+import {
+  ButtonRow, PrimaryButton as SubmitButton, ErrorMessage
+} from '../common/StyledFormComponents';
 
 const DetailGrid = styled.div`
   display: grid;
@@ -37,7 +41,6 @@ const StatusBadge = styled.span`
   &.done, &.completed { background-color: #d4edda; color: #155724; }
   &.canceled { background-color: #f8d7da; color: #721c24; }
 `;
-
 
 const PriorityBadge = styled.span`
   display: inline-block;
@@ -145,38 +148,11 @@ const CommentTextarea = styled.textarea`
   &:focus { outline: none; border-color: #4a90e2; }
 `;
 
-const ButtonRow = styled.div`
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-`;
-
-const SubmitButton = styled.button`
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  background: #4a90e2;
-  color: white;
-  font-size: 14px;
-  &:hover { background: #3b78c1; }
-  &:disabled { background: #ccc; cursor: not-allowed; }
-`;
-
 const EmptyMessage = styled.div`
   text-align: center;
   color: #888;
   padding: 20px;
   font-style: italic;
-`;
-
-const ErrorMessage = styled.div`
-  color: #dc3545;
-  font-size: 0.9em;
-  padding: 8px;
-  background: #f8d7da;
-  border-radius: 4px;
-  margin-bottom: 12px;
 `;
 
 const TaskDetailModal = ({ isOpen, onClose, task }) => {
@@ -197,16 +173,17 @@ const TaskDetailModal = ({ isOpen, onClose, task }) => {
     setErr('');
     try {
       const data = await callAPI(`/comments?task_id=${task.task_id}`, 'GET');
-      const list = Array.isArray(data) ? data : [];
+      const normalized = normalizePaginatedResponse(data);
+      const list = normalized.items;
       setComments(list);
       const ids = Array.from(new Set(list.map(c => c.author_id).filter(Boolean)));
       if (ids.length > 0) {
+        const { getUsernameById } = await import('../../utils/api');
         const authorMap = {};
         await Promise.all(ids.map(async (id) => {
           try {
-            const dU = await callAPI(`/users?user_id=${encodeURIComponent(id)}`, 'GET');
-            const arr = Array.isArray(dU) ? dU : (Array.isArray(dU?.users) ? dU.users : []);
-            if (arr[0]?.username) authorMap[id] = arr[0].username;
+            const username = await getUsernameById(id);
+            if (username && username !== id) authorMap[id] = username;
           } catch { /* ignore */ }
         }));
         setCommentAuthors(authorMap);
@@ -227,20 +204,12 @@ const TaskDetailModal = ({ isOpen, onClose, task }) => {
   }, [isOpen, task?.task_id, loadComments]);
 
   useEffect(() => {
-    const parseUsers = (data) => Array.isArray(data) ? data : (Array.isArray(data?.users) ? data.users : []);
-    const fetchUser = async (userId) => {
-      if (!userId) return '';
-      try {
-        const data = await callAPI(`/users?user_id=${encodeURIComponent(userId)}`, 'GET');
-        const list = parseUsers(data);
-        return list[0]?.username || '';
-      } catch { return ''; }
-    };
     let cancelled = false;
     const go = async () => {
+      const { getUsernameById } = await import('../../utils/api');
       const [an, cn] = await Promise.all([
-        fetchUser(task?.assigned_to),
-        fetchUser(task?.created_by)
+        getUsernameById(task?.assigned_to),
+        getUsernameById(task?.created_by)
       ]);
       if (cancelled) return;
       setAssignedName(an);
@@ -282,11 +251,6 @@ const TaskDetailModal = ({ isOpen, onClose, task }) => {
     } catch (e) {
       alert(`Error: ${e.message}`);
     }
-  };
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '';
-    try { return new Date(dateStr).toLocaleString(); } catch { return dateStr; }
   };
 
   const statusClass = (status) => {

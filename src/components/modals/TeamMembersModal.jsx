@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import ModalContainer from './ModalContainer';
-import { GET, POST, DELETE } from '../../utils/api';
+import { GET, POST, DELETE, normalizeUsers, normalizePaginatedResponse } from '../../utils/api';
 
 const List = styled.ul`
   padding-left: 18px;
@@ -60,7 +60,8 @@ const TeamMembersModal = ({ isOpen, onClose, team }) => {
 
       try {
         const data = await GET(`/teams/${team.team_id}/members`);
-        if (!cancel) setMembers(Array.isArray(data) ? data : []);
+        const normalized = normalizePaginatedResponse(data);
+        if (!cancel) setMembers(normalized.items);
       } catch (e) {
         if (!cancel) setErr(e.message || 'Error');
       } finally {
@@ -81,7 +82,7 @@ const TeamMembersModal = ({ isOpen, onClose, team }) => {
     try {
       // First, find the user by email
       const users = await GET(`/users?email=${encodeURIComponent(email)}`);
-      const userList = Array.isArray(users) ? users : users?.users || [];
+      const userList = normalizeUsers(users);
       
       if (userList.length === 0) {
         alert('User not found with that email');
@@ -96,7 +97,8 @@ const TeamMembersModal = ({ isOpen, onClose, team }) => {
       setEmail('');
       
       const list = await GET(`/teams/${team.team_id}/members`);
-      setMembers(Array.isArray(list) ? list : []);
+      const normalized = normalizePaginatedResponse(list);
+      setMembers(normalized.items);
     } catch (e) {
       alert(e.message || 'Error');
     }

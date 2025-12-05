@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { callAPI } from '../../utils/api';
 
 const Card = styled.div`
-  border: 1px solid #eee;
+  border: 1px solid #ccc;
   border-radius: 8px;
   padding: .8rem;
   margin: .4rem 0;
   box-shadow: 0 2px 4px rgba(0,0,0,.1);
-  border: 1px solid #ccc;
   background-color: #ffffff;
 
   &:hover {
@@ -73,6 +71,23 @@ const TaskDescription = styled.p`
   margin: 0 0 12px 0;
   color: #666;
   line-height: 1.4;
+`;
+
+const TagsContainer = styled.div`
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+`;
+
+const TagBadge = styled.span`
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: .85em;
+  font-weight: 500;
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #90caf9;
 `;
 
 const TaskMeta = styled.div`
@@ -172,25 +187,16 @@ const TaskCard = ({ task, onEdit, onDelete, onClick }) => {
     
     const [assignedName, setAssignedName] = useState('');
     const [createdName, setCreatedName] = useState('');
+    const [tags, setTags] = useState([]);
 
     useEffect(() => {
         let cancelled = false;
 
-        const fetchUserName = async (userId) => {
-            if (!userId) return '';
-            try {
-                const data = await callAPI(`/users?user_id=${encodeURIComponent(userId)}`, 'GET');
-                const list = Array.isArray(data) ? data : (data?.users || []);
-                return list[0]?.username || userId;
-            } catch {
-                return userId;
-            }
-        };
-
         const loadUserNames = async () => {
+            const { getUsernameById } = await import('../../utils/api');
             const [assigned, created] = await Promise.all([
-                fetchUserName(task?.assigned_to),
-                fetchUserName(task?.created_by)
+                getUsernameById(task?.assigned_to),
+                getUsernameById(task?.created_by)
             ]);
             
             if (!cancelled) {
@@ -207,6 +213,33 @@ const TaskCard = ({ task, onEdit, onDelete, onClick }) => {
             cancelled = true;
         };
     }, [task?.assigned_to, task?.created_by]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadTags = async () => {
+            if (!task?.task_id) return;
+
+            try {
+                const { callAPI } = await import('../../utils/api');
+                const data = await callAPI(`/tags/tasks/${task.task_id}`, 'GET');
+
+                if (!cancelled) {
+                    setTags(Array.isArray(data) ? data : []);
+                }
+            } catch {
+                if (!cancelled) {
+                    setTags([]);
+                }
+            }
+        };
+
+        loadTags();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [task?.task_id]);
 
     const handleCardClick = () => {
         if (onClick) onClick(task);
@@ -237,6 +270,7 @@ const TaskCard = ({ task, onEdit, onDelete, onClick }) => {
             </TaskCardHeader>
             <TaskCardBody>
                 <TaskDescription>{task?.description || 'No description'}</TaskDescription>
+                
                 {task?.assigned_to && (
                     <MetaText style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
                         Assigned to: {assignedName || task.assigned_to}
@@ -251,6 +285,11 @@ const TaskCard = ({ task, onEdit, onDelete, onClick }) => {
                     <LeftMeta>
                         <TaskStatus className={status}>{sLabel}</TaskStatus>
                         <PriorityBadge level={priority}>Priority: {priority}</PriorityBadge>
+                        {tags.length > 0 && tags.map(tag => (
+                            <TagBadge key={tag.tag_id}>
+                                {tag.name}
+                            </TagBadge>
+                        ))}
                     </LeftMeta>
                     <RightMeta>
                         {task?.deadline && (

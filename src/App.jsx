@@ -5,7 +5,7 @@ import Home from './views/Home';
 import Login from './views/Login';
 import Register from './views/Register';
 import Teams from './views/Teams';
-import Kanban from './views/Kanban';
+import Activity from './views/Activity';
 import Users from './views/Users';
 import Tasks from './views/Tasks';
 import Comments from './views/Comments';
@@ -21,7 +21,7 @@ function App() {
         <Route path="/users" element={<Users />} />
         <Route path="/tasks" element={<Tasks />} />
         <Route path="/comments" element={<Comments />} />
-        <Route path="/kanban" element={<Kanban />} />
+        <Route path="/activity" element={<Activity />} />
       </Routes>
     </BaseLayoutComponent>
   );

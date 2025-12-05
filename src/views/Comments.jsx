@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import styled from 'styled-components';
+import { useSearchParams } from 'react-router-dom';
 import Wrapper from '../components/wrapper';
-import { callAPI } from '../utils/api';
+import { callAPI, normalizePaginatedResponse } from '../utils/api';
 
 const Page = styled.div`
   padding: 2rem;
@@ -87,12 +88,20 @@ const SubmitButton = styled.button`
 
 
 export default function Comments() {
+  const [searchParams] = useSearchParams();
   const userId = localStorage.getItem('user_id') || '';
-  const taskId = localStorage.getItem('task_id') || ''; 
+  const taskId = searchParams.get('task_id') || localStorage.getItem('task_id') || '';
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
   const [content, setContent] = useState('');
+
+  // Sync task_id to localStorage when present in URL
+  useEffect(() => {
+    if (taskId) {
+      localStorage.setItem('task_id', taskId);
+    }
+  }, [taskId]);
 
   const loadComments = useCallback(async () => {
     if (!taskId) return;
@@ -100,7 +109,8 @@ export default function Comments() {
     setErr('');
     try {
       const data = await callAPI(`/comments?task_id=${taskId}`);
-      setComments(Array.isArray(data) ? data : []);
+      const normalized = normalizePaginatedResponse(data);
+      setComments(normalized.items);
     } catch (e) {
       setErr(e.message);
     } finally {
